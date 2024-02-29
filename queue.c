@@ -18,6 +18,7 @@ struct list_head *q_new()
     if (!p) {
         return NULL;
     }
+    INIT_LIST_HEAD(p);
     return p;
 }
 
