@@ -167,7 +167,10 @@ void q_swap(struct list_head *head)
         return;
     struct list_head *n, *s;
     list_for_each_safe (n, s, head) {
-        list_move(s, n);
+        if (s == head)
+            break;
+        list_move(n, s);
+        s = n->next;
     }
 }
 
