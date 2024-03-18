@@ -9,7 +9,10 @@
  * following line.
  *   cppcheck-suppress nullPointer
  */
+struct list_head *merge_two_list(struct list_head *left,
+                                 struct list_head *right);
 
+struct list_head *merge_recur(struct list_head *head);
 
 /* Create an empty queue */
 struct list_head *q_new()
@@ -207,34 +210,68 @@ void q_reverseK(struct list_head *head, int k)
 /* Sort elements of queue in ascending/descending order */
 void q_sort(struct list_head *head, bool descend)
 {
-    struct list_head less, great;
-    element_t *pivot;
-    element_t *now = NULL, *next = NULL;
-    if (!head || list_empty(head) || list_is_singular(head))
+    if (!head || list_empty(head))
         return;
-    INIT_LIST_HEAD(&less);
-    INIT_LIST_HEAD(&great);
-    pivot = list_first_entry(head, element_t, list);
-    list_del(&pivot->list);
-    list_for_each_entry_safe (now, next, head, list) {
-        if (descend == false) {
-            if (strcmp(now->value, pivot->value) < 0)
-                list_move_tail(&now->list, &less);
-            else
-                list_move_tail(&now->list, &great);
+    // disconnect the circular structure
+    head->prev->next = NULL;
+    head->next = merge_recur(head->next);
+    // reconnect the list (prev and circular)
+    struct list_head *c = head, *n = head->next;
+    while (n) {
+        n->prev = c;
+        c = n;
+        n = n->next;
+    }
+    c->next = head;
+    head->prev = c;
+}
+
+struct list_head *merge_two_list(struct list_head *left,
+                                 struct list_head *right)
+{
+    struct list_head head;
+    struct list_head *h = &head;
+    if (!left && !right) {
+        return NULL;
+    }
+    while (left && right) {
+        if (strcmp(list_entry(left, element_t, list)->value,
+                   list_entry(right, element_t, list)->value) < 0) {
+            h->next = left;
+            left = left->next;
+            h = h->next;
         } else {
-            if (strcmp(now->value, pivot->value) > 0)
-                list_move_tail(&now->list, &less);
-            else
-                list_move_tail(&now->list, &great);
+            h->next = right;
+            right = right->next;
+            h = h->next;
         }
     }
-    q_sort(&less, descend);
-    q_sort(&great, descend);
-    list_add(&pivot->list, head);
-    list_splice(&less, head);
-    list_splice_tail(&great, head);
+    // after merge, there are still one node still not connect yet
+    h->next = left ? left : right;
+    return head.next;
 }
+
+struct list_head *merge_recur(struct list_head *head)
+{
+    if (!head->next)
+        return head;
+
+    struct list_head *slow = head;
+    // split list
+    for (struct list_head *fast = head->next; fast && fast->next;
+         fast = fast->next->next) {
+        slow = slow->next;
+    }
+
+    struct list_head *mid = slow->next;  // the start node of right part
+    slow->next = NULL;
+
+    struct list_head *left = merge_recur(head);
+    struct list_head *right = merge_recur(mid);
+
+    return merge_two_list(left, right);
+}
+
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
