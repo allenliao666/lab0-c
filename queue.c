@@ -126,19 +126,19 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
-    if (!head || list_empty(head))
+    if (!head)
         return false;
-    element_t *c, *n;
-    bool is_dup = false;
-    list_for_each_entry_safe (c, n, head, list) {
-        if (c->list.next != head && strcmp(c->value, n->value) == 0) {
-            list_del(&c->list);
-            q_release_element(c);
-            is_dup = true;
-        } else if (is_dup) {
-            list_del(&c->list);
-            q_release_element(c);
-            is_dup = false;
+    element_t *entry, *safe;
+    bool dup = false;
+    list_for_each_entry_safe (entry, safe, head, list) {
+        if (&safe->list != head && !strcmp(entry->value, safe->value)) {
+            list_del(&entry->list);
+            q_release_element(entry);
+            dup = true;
+        } else if (dup) {
+            list_del(&entry->list);
+            q_release_element(entry);
+            dup = false;
         }
     }
     return true;
@@ -178,21 +178,15 @@ void q_reverse(struct list_head *head)
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    // https://leetcode.com/problems/reverse-nodes-in-k-group/
-    if (!head || list_empty(head))
-        return;
-    struct list_head temp, *n, *s, *tail = head;
-    INIT_LIST_HEAD(&temp);
-    int i = 0;
-    list_for_each_safe (n, s, head) {
-        ++i;
-        if (i == k) {
-            list_cut_position(&temp, tail, n);
-            q_reverse(&temp);
-            list_splice_init(&temp, head);
-            i = 0;
-            tail = s->prev;
+    struct list_head **indir = &head->next->next, *sub_head = head;
+    int size = q_size(head);
+    while (size >= k) {
+        for (int i = 0; i < k - 1; i++) {
+            list_move(*indir, sub_head);
         }
+        sub_head = (*indir)->prev;
+        indir = &(*indir)->next;
+        size -= k;
     }
 }
 
