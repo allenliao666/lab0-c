@@ -201,6 +201,9 @@ void q_sort(struct list_head *head, bool descend)
     }
     c->next = head;
     head->prev = c;
+
+    if (descend == true)
+        q_reverse(head);
 }
 
 struct list_head *merge_two_list(struct list_head *left,
